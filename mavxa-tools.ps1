@@ -1,3 +1,28 @@
+$currentVersion = "1.1.0" # correct version
+
+function Check-ForUpdates {
+    # URL
+    $repoUrl = "https://api.github.com/repos/mavxa/mavxa-tools/releases/latest"
+
+    try {
+        $latestRelease = Invoke-RestMethod -Uri $repoUrl -ErrorAction Stop
+        $latestVersion = $latestRelease.tag_name -replace 'v', ''
+
+        if ([version]$latestVersion -gt [version]$currentVersion) {
+            Write-Host "A new version is available: $latestVersion" -ForegroundColor Yellow
+            Write-Host "You can download it from the link: $($latestRelease.html_url)" -ForegroundColor Cyan
+
+            $downloadChoice = Read-Host "Do you want to download the update? (Y/N)"
+            if ($downloadChoice -eq 'Y' -or $downloadChoice -eq 'y') {
+                Start-Process $latestRelease.html_url
+            }
+        } else {
+            Write-Host "You have the latest version installed. ($currentVersion)." -ForegroundColor Green
+        }
+    } catch {
+        Write-Host "Couldn't check for updates: $_" -ForegroundColor Red
+    }
+}
 # Window Settings
 $Host.UI.RawUI.WindowTitle = "mavxa-tools"
 
@@ -53,7 +78,7 @@ function Log-Action {
     param (
         [string]$Action
     )
-    $logPath = "C:\Users\mafva\AppData\Local\Temp\log-mavxa.txt"
+    $logPath = "C:\Windows\Temp\log-mavxa.txt"
     $logDir = Split-Path $logPath
     if (-not (Test-Path $logDir)) {
         try {
@@ -75,7 +100,7 @@ function Log-Action {
 
 Ensure-ExecutionPolicy
 
-# Delay for ASCII art (not working))
+# Delay for ASCII art
 $delay = 0.5
 
 $asciiArt = @(
@@ -86,7 +111,8 @@ $asciiArt = @(
 "  \ \  \    \ \  \ \  \ \  \ \    / /   /     \/   \ \  \ \  \ ",
 "   \ \__\    \ \__\ \__\ \__\ \__/ /   /  /\   \    \ \__\ \__\",
 "    \|__|     \|__|\|__|\|__|\|__|/   /__/ /\ __\    \|__|\|__|",
-"                                      |__|/ \|__|              "
+"                                      |__|/ \|__|              ",
+"     $currentVersion"
 )
 
 function Show-PCInformation {
@@ -270,6 +296,42 @@ function Run-ChristitusCommand {
     Pause
 }
 
+function Show-UpdateMenu {
+    $submenuRunning = $true
+    while ($submenuRunning) {
+        Clear-Host
+        foreach ($line in $asciiArt) {
+            Write-Host $line -ForegroundColor Green
+            Start-Sleep -Seconds $delay
+        }
+
+        Write-Host "Mavxa-Tools - Version $currentVersion" -ForegroundColor Cyan
+        Write-Host "1. check updates"
+        Write-Host "2. other options..."
+        Write-Host "0. exit"
+
+        $choice = Read-Host "Select an option"
+
+        switch ($choice) {
+            "1" {
+                Check-ForUpdates
+                Pause
+            }
+            "2" {
+                # Другие опции...
+            }
+            "0" {
+                Log-Action "Return to main menu from submenu"
+                $submenuRunning = $false
+            }
+            default {
+                Write-Host "Wrong choice. Try again." -ForegroundColor Red
+                Pause
+            }
+        }
+    }
+}
+
 function Show-ToolsSubmenu {
     $submenuRunning = $true
     while ($submenuRunning) {
@@ -279,7 +341,7 @@ function Show-ToolsSubmenu {
             Start-Sleep -Seconds $delay
         }
 
-        Write-Host "`nTools Menu:" -ForegroundColo```r Cyan
+        Write-Host "Tools Menu:" -ForegroundColor Cyan
         Write-Host "1. Run Activated.Win Command"
         Write-Host "2. Run Christitus Win Command"
         Write-Host "type 'clear' to clear screen and redraw ASCII" -ForegroundColor Cyan
@@ -329,6 +391,7 @@ while ($running) {
     Write-Host "5. Show Service Information"
     Write-Host "6. Show Event Logs"
     Write-Host "7. Change User Password"
+    Write-Host "type 'update' to show updates" -ForegroundColor Cyan
     Write-Host "type 'tools' to  Additional Tools Menu" -ForegroundColor Cyan
     Write-Host "type 'exit' to quit" -ForegroundColor Red
 
@@ -362,6 +425,10 @@ while ($running) {
         "7" {
             Log-Action "Change User Password"
             Change-UserPassword
+        }
+        "update" {
+            log-Action "Show updates"
+            Show-UpdateMenu
         }
         "tools" {
             Log-Action "Enter Additional Tools Submenu"
